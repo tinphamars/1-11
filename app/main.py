@@ -1,9 +1,19 @@
+import warnings
+import logging
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+# Suppress ChromaDB telemetry warnings
+warnings.filterwarnings("ignore", category=UserWarning, message=".*telemetry.*")
+warnings.filterwarnings("ignore", category=UserWarning, message=".*capture.*")
+
+# Configure logging
+logging.getLogger("chromadb").setLevel(logging.ERROR)
+logging.getLogger("chromadb.telemetry").setLevel(logging.ERROR)
 
 from app.core.config import get_settings
 from app.services.document_service import DocumentService
@@ -26,32 +36,61 @@ async def lifespan(app: FastAPI):
     """Initialize services on startup and cleanup on shutdown"""
     global document_service, chat_service
 
-    settings = get_settings()
+    document_service = None
+    chat_service = None
 
-    # Initialize services
-    document_service = DocumentService(settings)
-    chat_service = ChatService(settings, document_service)
+    try:
+        settings = get_settings()
 
-    # Auto-load documents if enabled
-    if settings.auto_load_on_startup:
-        print("🔄 Auto-loading documents from 'documents' folder...")
+        # Initialize services
         try:
-            result = await document_service.auto_load_documents()
-            if result["processed_files"] > 0:
-                print(f"✅ Auto-loaded {result['processed_files']} files, {result['total_chunks']} chunks")
-            else:
-                print("ℹ️ No documents found to auto-load")
+            print("🔄 Initializing document service...")
+            document_service = DocumentService(settings)
+            print("✅ Document service initialized")
         except Exception as e:
-            print(f"❌ Error auto-loading documents: {str(e)}")
+            print(f"❌ Failed to initialize document service: {str(e)}")
+            raise
 
-    print("🚀 RAG Chatbot API initialized successfully")
+        try:
+            print("🔄 Initializing chat service...")
+            chat_service = ChatService(settings, document_service)
+            print("✅ Chat service initialized")
+        except Exception as e:
+            print(f"❌ Failed to initialize chat service: {str(e)}")
+            raise
 
-    yield  # --- app runs here ---
+        # Auto-load documents if enabled
+        if settings.auto_load_on_startup:
+            print("🔄 Auto-loading documents from 'documents' folder...")
+            try:
+                result = await document_service.auto_load_documents()
+                if result["processed_files"] > 0:
+                    print(f"✅ Auto-loaded {result['processed_files']} files, {result['total_chunks']} chunks")
+                else:
+                    print("ℹ️ No documents found to auto-load")
+            except Exception as e:
+                print(f"⚠️ Warning: Error auto-loading documents: {str(e)}")
+                print("⚠️ Continuing startup without auto-loaded documents...")
 
-    # Cleanup
-    if document_service:
-        await document_service.cleanup()
-    print("🛑 RAG Chatbot API shutdown complete")
+        print("🚀 RAG Chatbot API initialized successfully")
+    except Exception as e:
+        print(f"❌ Fatal error during startup: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Re-raise to prevent the app from starting in an invalid state
+        # But wrap it to provide better error context
+        raise RuntimeError(f"Failed to initialize application: {str(e)}") from e
+
+    try:
+        yield  # --- app runs here ---
+    finally:
+        # Cleanup
+        try:
+            if document_service:
+                await document_service.cleanup()
+            print("🛑 RAG Chatbot API shutdown complete")
+        except Exception as e:
+            print(f"⚠️ Error during cleanup: {str(e)}")
 
 
 # Create FastAPI app

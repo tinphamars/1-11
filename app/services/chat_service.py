@@ -3,8 +3,26 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from langchain_openai import ChatOpenAI
+try:
+    from langchain_openai import AzureChatOpenAI, ChatOpenAI
+except ImportError:
+    from langchain_openai import ChatOpenAI
+    AzureChatOpenAI = None
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
+
+# Import OpenAI exceptions (v1.x structure)
+try:
+    from openai import APIError, APIConnectionError, AuthenticationError, RateLimitError
+except ImportError:
+    # Fallback for different OpenAI SDK versions
+    try:
+        from openai.error import APIError, APIConnectionError, AuthenticationError, RateLimitError
+    except ImportError:
+        # If exceptions not available, define base classes
+        APIError = Exception
+        APIConnectionError = ConnectionError
+        AuthenticationError = ValueError
+        RateLimitError = Exception
 
 from app.core.config import Settings
 from app.services.document_service import DocumentService
@@ -12,10 +30,10 @@ from app.services.document_service import DocumentService
 import os
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
 os.environ["LANGCHAIN_TELEMETRY"] = "false"
+os.environ["LANGCHAIN_ENDPOINT"] = ""
 
 
 logger = logging.getLogger(__name__)
-
 
 class ChatService:
     """Service for handling chat interactions with RAG."""
@@ -24,26 +42,60 @@ class ChatService:
         self.settings = settings
         self.document_service = document_service
 
-        # Initialize LLM
-     
-        llm_kwargs = {
-            "openai_api_key": settings.openai_api_key,
-            "temperature": settings.default_temperature,
-            "max_tokens": settings.default_max_tokens
-        }
-
-        # Azure vs Public OpenAI configuration
+        # Initialize LLM based on configuration type
         if settings.openai_base_url and settings.openai_api_type.lower() == "azure":
-            llm_kwargs["azure_endpoint"] = settings.openai_base_url
-            llm_kwargs["openai_api_version"] = settings.openai_api_version
-            llm_kwargs["azure_deployment"] = settings.openai_model  # deployment name
+            # Use AzureChatOpenAI if available, otherwise use ChatOpenAI with model_kwargs
+            if AzureChatOpenAI is not None:
+                logger.info(f"Initializing AzureChatOpenAI with endpoint: {settings.openai_base_url}, deployment: {settings.openai_model}")
+                try:
+                    self.llm = AzureChatOpenAI(
+                        azure_deployment=settings.openai_model,
+                        azure_endpoint=settings.openai_base_url,
+                        openai_api_version=settings.openai_api_version,
+                        openai_api_key=settings.openai_api_key,
+                        temperature=settings.default_temperature,
+                        max_tokens=settings.default_max_tokens
+                    )
+                    logger.info("AzureChatOpenAI initialized successfully")
+                except Exception as e:
+                    logger.error(f"Failed to initialize AzureChatOpenAI: {str(e)}")
+                    raise ValueError(f"Failed to initialize AzureChatOpenAI: {str(e)}. Please check your Azure configuration.")
+            else:
+                # Fallback to ChatOpenAI with model_kwargs for Azure
+                logger.info(f"Using ChatOpenAI for Azure with endpoint: {settings.openai_base_url}, deployment: {settings.openai_model}")
+                try:
+                    self.llm = ChatOpenAI(
+                        openai_api_key=settings.openai_api_key,
+                        temperature=settings.default_temperature,
+                        max_tokens=settings.default_max_tokens,
+                        model_kwargs={
+                            "azure_endpoint": settings.openai_base_url,
+                            "openai_api_version": settings.openai_api_version,
+                            "azure_deployment": settings.openai_model
+                        }
+                    )
+                    logger.info("ChatOpenAI (Azure) initialized successfully")
+                except Exception as e:
+                    logger.error(f"Failed to initialize ChatOpenAI for Azure: {str(e)}")
+                    raise ValueError(f"Failed to initialize ChatOpenAI for Azure: {str(e)}. Please check your Azure configuration.")
         else:
             # Public OpenAI or compatible endpoint
-            llm_kwargs["model"] = settings.openai_model
+            logger.info(f"Initializing ChatOpenAI with model: {settings.openai_model}")
+            llm_kwargs = {
+                "openai_api_key": settings.openai_api_key,
+                "model": settings.openai_model,
+                "temperature": settings.default_temperature,
+                "max_tokens": settings.default_max_tokens
+            }
             if settings.openai_base_url:
                 llm_kwargs["openai_api_base"] = settings.openai_base_url
-
-        self.llm = ChatOpenAI(**llm_kwargs)
+            
+            try:
+                self.llm = ChatOpenAI(**llm_kwargs)
+                logger.info("ChatOpenAI initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize ChatOpenAI: {str(e)}")
+                raise ValueError(f"Failed to initialize ChatOpenAI: {str(e)}. Please check your OpenAI configuration.")
 
         # Store conversations in memory
         # (In production, this should be replaced with a database)
@@ -109,9 +161,26 @@ class ChatService:
                 }
             }
 
+        except (APIConnectionError, ConnectionError) as e:
+            error_msg = f"Connection error: Unable to connect to OpenAI/Azure endpoint. Please check your network connection and endpoint URL ({self.settings.openai_base_url or 'default'})."
+            logger.error(f"{error_msg} Details: {str(e)}")
+            raise ConnectionError(error_msg) from e
+        except AuthenticationError as e:
+            error_msg = f"Authentication error: Invalid API key or credentials. Please check your OPENAI_API_KEY."
+            logger.error(f"{error_msg} Details: {str(e)}")
+            raise ValueError(error_msg) from e
+        except RateLimitError as e:
+            error_msg = f"Rate limit exceeded: Too many requests. Please try again later."
+            logger.error(f"{error_msg} Details: {str(e)}")
+            raise ValueError(error_msg) from e
+        except APIError as e:
+            error_msg = f"API error: {str(e)}"
+            logger.error(f"{error_msg} Details: {str(e)}")
+            raise RuntimeError(error_msg) from e
         except Exception as e:
-            logger.error(f"Error in chat: {str(e)}")
-            raise
+            error_msg = f"Unexpected error during chat: {str(e)}"
+            logger.error(f"{error_msg}", exc_info=True)
+            raise RuntimeError(error_msg) from e
 
     def build_context(self, similar_docs: List[Dict[str, Any]]) -> str:
         """Build context string from retrieved documents."""

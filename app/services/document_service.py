@@ -1,9 +1,14 @@
 import logging
+import warnings
 import chromadb
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, Any, List
 import asyncio
+
+# Suppress ChromaDB telemetry warnings
+warnings.filterwarnings("ignore", category=UserWarning, message=".*telemetry.*")
+warnings.filterwarnings("ignore", category=UserWarning, message=".*capture.*")
 
 from chromadb.config import Settings as ChromaSettings
 from langchain.text_splitter import RecursiveCharacterTextSplitter

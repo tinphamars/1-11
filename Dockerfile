@@ -6,8 +6,10 @@ WORKDIR /app
 # Disable telemetry/noise in runtime
 ENV CHROMA_TELEMETRY_ENABLED=false \
     ANONYMIZED_TELEMETRY=false \
+    CHROMA_SERVER_NO_ANALYTICS=1 \
     LANGCHAIN_TRACING_V2=false \
     LANGCHAIN_ENDPOINT="" \
+    LANGCHAIN_TELEMETRY=false \
     LANGSMITH_API_KEY=""
 
 # Cài đặt các gói hệ thống cần thiết (nếu có gói biên dịch như chromadb, pydantic,...)

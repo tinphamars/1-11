@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     openai_base_url: Optional[str] = Field(None, env="OPENAI_BASE_URL")
     openai_model: str = Field(default="gpt-3.5-turbo", env="OPENAI_MODEL")
     openai_embedding_model: str = Field(default="text-embedding-ada-002", env="OPENAI_EMBEDDING_MODEL")
-    openai_api_type: str = Field(default="azure", env="OPENAI_API_TYPE")
+    openai_api_type: str = Field(default="openai", env="OPENAI_API_TYPE")
     openai_api_version: str = Field(default="2023-05-15", env="OPENAI_API_VERSION")
 
     # ChromaDB Settings
