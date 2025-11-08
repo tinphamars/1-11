@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
 from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
 
 # Suppress ChromaDB telemetry warnings
 warnings.filterwarnings("ignore", category=UserWarning, message=".*telemetry.*")
@@ -101,6 +102,16 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
+)
+origins = [
+    "http://localhost:3000"
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,           # List of allowed origins
+    allow_credentials=True,          # Allow cookies, authorization headers
+    allow_methods=["*"],             # Allow all HTTP methods
+    allow_headers=["*"],             # Allow all HTTP headers
 )
 # Dependency injection for FastAPI
 def get_document_service() -> DocumentService:
