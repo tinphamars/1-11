@@ -1,0 +1,111 @@
+========================================
+         ChromaDB Quick Start Guide
+========================================
+
+This guide helps new developers understand and use ChromaDB,
+a lightweight and powerful vector database for RAG applications.
+
+1. What is ChromaDB?
+--------------------
+ChromaDB is an open-source vector database for storing and querying embeddings.
+It is commonly used in Retrieval-Augmented Generation (RAG) pipelines
+to retrieve relevant text chunks before passing them to a language model (like GPT).
+
+Key Features:
+- Fast vector search (cosine similarity)
+- Local persistence (no external DB needed)
+- Python, REST, and JS APIs
+- Integrates easily with LangChain, LlamaIndex, FastAPI
+
+2. Installation
+---------------
+Install via pip:
+    pip install chromadb
+
+Or in requirements.txt:
+    chromadb>=0.4.0
+
+Optional: install server integration:
+    pip install "chromadb[server]"
+
+3. Basic Usage (Python Example)
+-------------------------------
+import chromadb
+
+# Initialize client
+client = chromadb.Client()
+
+# Create or get a collection
+collection = client.get_or_create_collection("docs")
+
+# Add documents and embeddings
+collection.add(
+    ids=["1", "2"],
+    documents=["Docker is a containerization tool.", "ChromaDB stores embeddings."],
+    metadatas=[{"topic": "docker"}, {"topic": "ai"}]
+)
+
+# Query similar content
+results = collection.query(
+    query_texts=["What is ChromaDB?"],
+    n_results=2
+)
+
+print(results)
+
+4. Persistent Storage
+---------------------
+To persist data across sessions:
+
+import chromadb
+client = chromadb.PersistentClient(path="./chroma_db")
+
+This creates a local folder (chroma_db/) containing your vector data.
+
+5. Using Chroma as a Server
+---------------------------
+Run ChromaDB via CLI:
+    chroma run --host 0.0.0.0 --port 8000 --path ./chroma_db
+
+Or use Docker:
+    docker run -d -p 8000:8000 -v ./chroma_db:/chroma/chroma chromadb/chroma:latest
+
+Access API at: http://localhost:8000/docs
+
+6. Integration with RAG Pipelines
+---------------------------------
+Example with LangChain:
+
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+
+embeddings = OpenAIEmbeddings()
+db = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
+
+# Add and search data
+db.add_texts(["RAG improves LLM accuracy using external data."])
+docs = db.similarity_search("What is RAG?")
+print(docs[0].page_content)
+
+7. Maintenance Commands
+-----------------------
+Task                     | Command / Code
+-------------------------|--------------------------
+View collections          | client.list_collections()
+Delete a collection       | client.delete_collection("docs")
+Clear all data            | Delete the folder ./chroma_db/
+Backup                    | Copy chroma_db folder to a secure location
+
+8. Troubleshooting
+-----------------
+Issue: "SQLite error"
+Cause: Database corruption
+Solution: Delete and rebuild chroma_db
+
+Issue: "Connection refused"
+Cause: ChromaDB server not running
+Solution: Start with chroma run or via Docker
+
+Issue: Slow performance
+Cause: Too many vectors
+Solution: Use smaller embeddings or batch insert
