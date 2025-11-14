@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning, message=".*telemetry.*")
 warnings.filterwarnings("ignore", category=UserWarning, message=".*capture.*")
 
 from chromadb.config import Settings as ChromaSettings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter, MarkdownTextSplitter
 from langchain.schema import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.document_loaders import (
@@ -62,6 +62,12 @@ class DocumentService:
             length_function=len,
             separators=["\n\n", "\n", " ", ""]
         )
+
+        # self.text_splitter = MarkdownTextSplitter(
+        #     chunk_size=settings.chunk_size,
+        #     chunk_overlap=settings.chunk_overlap,
+        #     strip_headers=False
+        # )
 
         # Thread pool for file processing
         self.executor = ThreadPoolExecutor(max_workers=4)
