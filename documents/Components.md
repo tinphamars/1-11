@@ -1,44 +1,44 @@
 
-## 🔧 Các Thành Phần Kỹ Thuật
+## 🔧 Technical Components
 
 ### 1. Text Splitter
 
-**RecursiveCharacterTextSplitter** chia text thông minh:
+**RecursiveCharacterTextSplitter** intelligently splits text:
 
 ```python
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,        # Kích thước mỗi chunk
-    chunk_overlap=200,      # Overlap để giữ ngữ cảnh
+    chunk_size=1000,        # Size of each chunk
+    chunk_overlap=200,      # Overlap to maintain context
     length_function=len,
-    separators=["\n\n", "\n", " ", ""]  # Ưu tiên chia theo paragraph
+    separators=["\n\n", "\n", " ", ""]  # Prioritize paragraph splitting
 )
 ```
 
-**Ví dụ:**
+**Example:**
 
 ```
 Original text (2500 chars):
-"# Hệ Thống Quản Lý\n\n## Tổng Quan\nHệ thống giúp...[800 chars]...\n\n## Tính Năng\n### Quản Lý Nhân Viên\n...[1200 chars]...\n\n## API\nEndpoints chính..."
+"# Management System\n\n## Overview\nSystem helps...[800 chars]...\n\n## Features\n### Employee Management\n...[1200 chars]...\n\n## API\nMain endpoints..."
 
 After splitting:
-Chunk 1 (1000 chars): "# Hệ Thống Quản Lý\n\n## Tổng Quan..."
+Chunk 1 (1000 chars): "# Management System\n\n## Overview..."
                         └─ overlap 200 chars ─┐
-Chunk 2 (1000 chars):                    "...Hệ thống giúp...\n\n## Tính Năng..."
+Chunk 2 (1000 chars):                    "...System helps...\n\n## Features..."
                                           └─ overlap 200 chars ─┐
-Chunk 3 (700 chars):                                      "...### Quản Lý...\n\n## API..."
+Chunk 3 (700 chars):                                      "...### Employee...\n\n## API..."
 ```
 
-**Tại sao cần overlap?**
+**Why is overlap needed?**
 
-- Giữ ngữ cảnh giữa các chunks
-- Tránh mất thông tin ở ranh giới
-- Tăng khả năng tìm kiếm chính xác
+- Maintain context between chunks
+- Avoid information loss at boundaries
+- Increase accurate search capability
 
 ### 2. Document Loaders
 
 ```python
 def _get_loader(file_path):
-    """Chọn loader phù hợp theo extension"""
+    """Select appropriate loader by extension"""
     extension = file_path.suffix.lower()
     
     loaders = {
@@ -69,7 +69,7 @@ embeddings = OpenAIEmbeddings(
 )
 
 # Single text
-vector = embeddings.embed_query("Hệ thống quản lý nhân viên")
+vector = embeddings.embed_query("Employee management system")
 # → [0.023, -0.891, ...] (1536 dimensions)
 
 # Multiple texts
@@ -106,7 +106,7 @@ answer = response.choices[0].message.content
 
 ### 4. ChromaDB Operations
 
-#### Khởi tạo
+#### Initialization
 
 ```python
 import chromadb
@@ -123,7 +123,7 @@ collection = client.get_or_create_collection(
 )
 ```
 
-#### Thêm documents
+#### Adding documents
 
 ```python
 collection.add(
@@ -134,7 +134,7 @@ collection.add(
 )
 ```
 
-#### Tìm kiếm
+#### Searching
 
 ```python
 results = collection.query(
@@ -144,12 +144,12 @@ results = collection.query(
 )
 ```
 
-## ⚡ Tối Ưu Hóa
+## ⚡ Optimization
 
 ### 1. Concurrent Processing
 
 ```python
-# Xử lý nhiều files song song
+# Process multiple files in parallel
 tasks = [_process_single_file(file) for file in valid_files]
 results = await asyncio.gather(*tasks, return_exceptions=True)
 ```
@@ -159,7 +159,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)
 ```python
 executor = ThreadPoolExecutor(max_workers=4)
 
-# Chạy blocking operations trong thread pool
+# Run blocking operations in thread pool
 embeddings = await asyncio.get_event_loop().run_in_executor(
     executor, 
     openai_embeddings.embed_documents, 
@@ -170,7 +170,7 @@ embeddings = await asyncio.get_event_loop().run_in_executor(
 ### 3. Batch Processing
 
 ```python
-# Tạo embeddings theo batch thay vì từng cái một
+# Create embeddings in batches instead of one by one
 BATCH_SIZE = 100
 
 for i in range(0, len(documents), BATCH_SIZE):
@@ -181,14 +181,14 @@ for i in range(0, len(documents), BATCH_SIZE):
 
 ### 4. Caching
 
-ChromaDB tự động cache:
-- Lưu persistent trên disk
-- Không cần reload khi restart
-- Tìm kiếm nhanh với index
+ChromaDB automatically caches:
+- Persistent storage on disk
+- No need to reload on restart
+- Fast search with indexing
 
 ## 📊 Metrics & Monitoring
 
-### Metrics Quan Trọng
+### Important Metrics
 
 ```python
 # Document processing
@@ -231,38 +231,38 @@ logger.error(f"Failed to process {file_path}: {error}")
 ### 1. Chunk Size Optimization
 
 ```
-Quá nhỏ (< 500):  Mất ngữ cảnh, nhiều chunks không cần thiết
-Tối ưu (800-1200): Cân bằng ngữ cảnh và độ chính xác
-Quá lớn (> 2000):  GPT có thể bị overwhelm, chậm
+Too small (< 500):  Loss of context, unnecessary chunks
+Optimal (800-1200): Balance context and accuracy
+Too large (> 2000):  GPT may be overwhelmed, slow
 ```
 
 ### 2. Retrieval K Value
 
 ```python
-k = 3:  Nhanh, ít context, có thể thiếu thông tin
-k = 5:  Cân bằng tốt (khuyến nghị)
-k = 10: Nhiều context, nhưng có thể có noise
+k = 3:  Fast, less context, may miss information
+k = 5:  Good balance (recommended)
+k = 10: More context, but may have noise
 ```
 
 ### 3. Temperature Settings
 
 ```
-0.0 - 0.3:  Deterministic, chính xác, lặp lại
-0.5 - 0.7:  Cân bằng (khuyến nghị cho RAG)
-0.8 - 1.0:  Sáng tạo, nhưng có thể sai lệch
+0.0 - 0.3:  Deterministic, accurate, repeatable
+0.5 - 0.7:  Balanced (recommended for RAG)
+0.8 - 1.0:  Creative, but may deviate
 ```
 
 ### 4. Context Window Management
 
 ```
 GPT-4o-mini: 128k tokens context window
-Mỗi token ≈ 4 chars
+Each token ≈ 4 chars
 
-Ví dụ:
+Example:
 5 documents × 1000 chars = 5000 chars ≈ 1250 tokens
 System prompt: ~500 tokens
 User message: ~50 tokens
 Response budget: ~1000 tokens
 ────────────────────────────────────────
-Total: ~2800 tokens (còn rất nhiều cho context)
+Total: ~2800 tokens (plenty left for context)
 ```

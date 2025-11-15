@@ -1,18 +1,18 @@
-# Kiến Trúc & Cách Hoạt Động của RAG Chatbot API
+# Architecture & Workflow of RAG Chatbot API
 
-## 📋 Tổng Quan
+## 📋 Overview
 
-RAG (Retrieval-Augmented Generation) Chatbot API là hệ thống AI kết hợp việc tìm kiếm thông tin từ documents với khả năng sinh text của GPT để trả lời câu hỏi một cách chính xác và có ngữ cảnh.
+RAG (Retrieval-Augmented Generation) Chatbot API is an AI system that combines document information retrieval with GPT's text generation capabilities to answer questions accurately and with context.
 
-### Nguyên Tắc Hoạt Động
+### Working Principle
 
 ```
 Documents → Embeddings → Vector DB → Search → Context → GPT → Answer
 ```
 
-## 🏗️ Kiến Trúc Hệ Thống
+## 🏗️ System Architecture
 
-### Sơ Đồ Tổng Quan
+### Overview Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -47,9 +47,9 @@ Documents → Embeddings → Vector DB → Search → Context → GPT → Answer
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 🔄 Quy Trình Hoạt Động Chi Tiết
+## 🔄 Detailed Workflow
 
-### Phase 1: Khởi Động & Load Documents
+### Phase 1: Startup & Document Loading
 
 ```mermaid
 graph TD
@@ -66,52 +66,52 @@ graph TD
     K --> F
 ```
 
-#### Bước 1: Quét Thư Mục Documents
+#### Step 1: Scan Documents Folder
 
 ```python
-# Trong document_service.py
+# In document_service.py
 
 def auto_load_documents():
     """
-    Tự động load documents từ thư mục mặc định
+    Automatically load documents from default folder
     """
-    # 1. Xác định thư mục
+    # 1. Define folder
     documents_folder = Path("./documents")
     
-    # 2. Tìm tất cả files theo pattern
+    # 2. Find all files by pattern
     file_patterns = ["*.py", "*.md", "*.txt", "*.json", 
                      "*.yaml", "*.docx", "*.pdf"]
     
-    # 3. Lọc file hợp lệ
+    # 3. Filter valid files
     valid_files = []
     for pattern in file_patterns:
         for file_path in documents_folder.rglob(pattern):
-            # Kiểm tra size
+            # Check size
             if file_path.stat().st_size <= MAX_FILE_SIZE_MB * 1024 * 1024:
                 valid_files.append(file_path)
     
-    # 4. Xử lý từng file
+    # 4. Process each file
     for file_path in valid_files:
         process_single_file(file_path)
 ```
 
-#### Bước 2: Xử Lý File
+#### Step 2: File Processing
 
 ```python
 def _process_single_file(file_path):
     """
-    Xử lý một file duy nhất
+    Process a single file
     """
-    # 1. Chọn loader phù hợp
+    # 1. Select appropriate loader
     loader = _get_loader(file_path)
     
-    # 2. Load nội dung
+    # 2. Load content
     documents = loader.load()
     
-    # 3. Split thành chunks
+    # 3. Split into chunks
     chunks = text_splitter.split_documents(documents)
     
-    # 4. Thêm metadata
+    # 4. Add metadata
     for chunk in chunks:
         chunk.metadata = {
             "source": str(file_path),
@@ -123,38 +123,38 @@ def _process_single_file(file_path):
     return chunks
 ```
 
-**Ví dụ thực tế:**
+**Real Example:**
 
 ```
 File: employee_management_system/README.md (5,120 bytes)
     ↓
-Load content: "# Hệ Thống Quản Lý Nhân Viên\n\n## Tổng Quan..."
+Load content: "# Employee Management System\n\n## Overview..."
     ↓
 Split into chunks (chunk_size=1000, overlap=200):
-    Chunk 1: "# Hệ Thống Quản Lý Nhân Viên\n\n## Tổng Quan..."
-    Chunk 2: "...## Đặc Trưng Chính\n### Quản Lý Phòng Ban..."
-    Chunk 3: "...### Quản Lý Nhân Viên\n- Thông tin cá nhân..."
-    Chunk 4: "...## Công Nghệ Sử Dụng\n- FastAPI..."
+    Chunk 1: "# Employee Management System\n\n## Overview..."
+    Chunk 2: "...## Main Features\n### Department Management..."
+    Chunk 3: "...### Employee Management\n- Personal information..."
+    Chunk 4: "...## Technologies Used\n- FastAPI..."
     Chunk 5: "...## API Endpoints\nPOST /employees..."
-    Chunk 6: "...## Bảo Mật\n- JWT Token..."
+    Chunk 6: "...## Security\n- JWT Token..."
     ↓
 Total: 6 chunks
 ```
 
-#### Bước 3: Tạo Embeddings
+#### Step 3: Create Embeddings
 
 ```python
 def _add_documents_to_db(documents):
     """
-    Chuyển đổi text thành vector embeddings
+    Convert text to vector embeddings
     """
-    # 1. Trích xuất text từ chunks
+    # 1. Extract text from chunks
     texts = [doc.page_content for doc in documents]
     
-    # 2. Gọi OpenAI Embedding API
+    # 2. Call OpenAI Embedding API
     embeddings = openai_embeddings.embed_documents(texts)
     
-    # 3. Lưu vào ChromaDB
+    # 3. Save to ChromaDB
     collection.add(
         embeddings=embeddings,
         documents=texts,
@@ -163,26 +163,26 @@ def _add_documents_to_db(documents):
     )
 ```
 
-**Embedding là gì?**
+**What are Embeddings?**
 
-Embedding chuyển đổi text thành vector số để máy tính hiểu ngữ nghĩa:
+Embeddings convert text into numerical vectors so computers can understand semantics:
 
 ```
-Text: "Hệ thống quản lý nhân viên giúp theo dõi thông tin nhân sự"
+Text: "Employee management system helps track personnel information"
     ↓ OpenAI text-embedding-ada-002
-Vector (1536 chiều): 
+Vector (1536 dimensions): 
 [0.023, -0.891, 0.234, 0.567, -0.123, 0.789, ..., 0.456]
            ↑
-    Mỗi số đại diện cho một "khía cạnh" ngữ nghĩa
+    Each number represents a semantic "aspect"
 ```
 
-**Tại sao cần Embeddings?**
+**Why do we need Embeddings?**
 
-- Text có ngữ nghĩa giống nhau → Vector gần nhau
-- Cho phép tìm kiếm theo ý nghĩa, không chỉ từ khóa
-- "nhân viên" và "người lao động" → vectors tương tự
+- Text with similar semantics → Similar vectors
+- Allows semantic search, not just keyword matching
+- "employee" and "worker" → similar vectors
 
-### Phase 2: Chat & Trả Lời Câu Hỏi
+### Phase 2: Chat & Answer Questions
 
 ```mermaid
 graph TD
@@ -195,47 +195,47 @@ graph TD
     G --> H[Return Response + Sources]
 ```
 
-#### Bước 1: Nhận Câu Hỏi
+#### Step 1: Receive Question
 
 ```http
 POST /chat
 Content-Type: application/json
 
 {
-  "message": "Làm sao để tạo nhân viên mới trong hệ thống?",
+  "message": "How do I create a new employee in the system?",
   "conversation_id": null,
   "max_tokens": 1000,
   "temperature": 0.7
 }
 ```
 
-#### Bước 2: Tạo Query Embedding
+#### Step 2: Create Query Embedding
 
 ```python
-# Trong document_service.py
+# In document_service.py
 
 def search_similar_documents(query, k=5):
     """
-    Tìm documents tương tự với câu hỏi
+    Find documents similar to the question
     """
-    # 1. Tạo embedding cho câu hỏi
+    # 1. Create embedding for the question
     query_embedding = openai_embeddings.embed_query(query)
     
     # query_embedding = [0.123, -0.456, 0.789, ...]
 ```
 
-#### Bước 3: Tìm Kiếm Vector Similarity
+#### Step 3: Vector Similarity Search
 
 ```python
-    # 2. Tìm trong ChromaDB
+    # 2. Search in ChromaDB
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=k,  # Lấy top 5
+        n_results=k,  # Get top 5
         include=["documents", "metadatas", "distances"]
     )
 ```
 
-**Vector Similarity Search hoạt động thế nào?**
+**How does Vector Similarity Search work?**
 
 ```
 Query Vector:     [0.1, 0.9, 0.2, ...]
@@ -250,12 +250,12 @@ Doc 5: [0.2, 0.7, 0.3, ...]     → Cosine similarity: 0.85 ✓ (Similar)
 → Return top 5: Doc 4, Doc 1, Doc 5, Doc 2, (Doc 6...)
 ```
 
-**Kết quả tìm kiếm:**
+**Search Results:**
 
 ```json
 [
   {
-    "content": "## API Endpoints\n\n### Employees\n```\nPOST /api/v1/employees\n```\nTạo nhân viên mới với thông tin: fullName, email, phone, departmentId...",
+    "content": "## API Endpoints\n\n### Employees\n```\nPOST /api/v1/employees\n```\nCreate new employee with information: fullName, email, phone, departmentId...",
     "metadata": {
       "source": "./documents/employee_management_system/docs/API_DOCUMENTATION.md",
       "file_name": "API_DOCUMENTATION.md"
@@ -270,7 +270,7 @@ Doc 5: [0.2, 0.7, 0.3, ...]     → Cosine similarity: 0.85 ✓ (Similar)
     "score": 0.88
   },
   {
-    "content": "### Thêm Nhân Viên Mới\n\n1. Truy cập menu Employees\n2. Click nút 'Thêm mới'\n3. Điền form với thông tin bắt buộc\n4. Upload CV nếu có\n5. Click 'Lưu'",
+    "content": "### Add New Employee\n\n1. Access Employees menu\n2. Click 'Add New' button\n3. Fill form with required information\n4. Upload CV if available\n5. Click 'Save'",
     "metadata": {
       "source": "./documents/employee_management_system/docs/USER_GUIDE.md"
     },
@@ -279,29 +279,29 @@ Doc 5: [0.2, 0.7, 0.3, ...]     → Cosine similarity: 0.85 ✓ (Similar)
 ]
 ```
 
-#### Bước 4: Xây Dựng Context
+#### Step 4: Build Context
 
 ```python
-# Trong chat_service.py
+# In chat_service.py
 
 def chat(message, conversation_id=None):
     """
-    Xử lý chat với RAG
+    Process chat with RAG
     """
-    # 1. Tìm documents liên quan
+    # 1. Find relevant documents
     similar_docs = document_service.search_similar_documents(
         message, 
         k=5
     )
     
-    # 2. Xây dựng context từ documents tìm được
+    # 2. Build context from found documents
     context = "\n\n---\n\n".join([
         f"Document {i+1} (Source: {doc['metadata']['file_name']}):\n{doc['content']}"
         for i, doc in enumerate(similar_docs)
     ])
 ```
 
-**Context được tạo:**
+**Context Created:**
 
 ```
 Document 1 (Source: API_DOCUMENTATION.md):
@@ -328,33 +328,33 @@ class Employee:
 ---
 
 Document 3 (Source: USER_GUIDE.md):
-### Thêm Nhân Viên Mới
+### Add New Employee
 
-1. Truy cập menu Employees
-2. Click nút 'Thêm mới'
-3. Điền form với thông tin bắt buộc
-4. Upload CV nếu có
-5. Click 'Lưu'
+1. Access Employees menu
+2. Click 'Add New' button
+3. Fill form with required information
+4. Upload CV if available
+5. Click 'Save'
 ```
 
-#### Bước 5: Gọi GPT
+#### Step 5: Call GPT
 
 ```python
-    # 3. Tạo messages cho GPT
+    # 3. Create messages for GPT
     messages = [
         {
             "role": "system",
-            "content": f"""Bạn là trợ lý AI thông minh, giúp người dùng trả lời câu hỏi về dự án dựa trên tài liệu được cung cấp.
+            "content": f"""You are an intelligent AI assistant, helping users answer questions about the project based on provided documents.
 
-Dựa vào context sau để trả lời câu hỏi của người dùng:
+Use the following context to answer user questions:
 
 {context}
 
-Hướng dẫn:
-- Trả lời chính xác dựa trên context
-- Nếu không tìm thấy thông tin, nói rõ
-- Trích dẫn nguồn khi có thể
-- Trả lời bằng tiếng Việt rõ ràng, dễ hiểu"""
+Guidelines:
+- Answer accurately based on context
+- If information is not found, state clearly
+- Cite sources when possible
+- Respond in clear, easy-to-understand English"""
         },
         {
             "role": "user",
@@ -362,7 +362,7 @@ Hướng dẫn:
         }
     ]
     
-    # 4. Gọi OpenAI GPT
+    # 4. Call OpenAI GPT
     response = openai_client.chat.completions.create(
         model="GPT-4o-mini",
         messages=messages,
@@ -373,11 +373,11 @@ Hướng dẫn:
     answer = response.choices[0].message.content
 ```
 
-#### Bước 6: Trả Về Kết Quả
+#### Step 6: Return Results
 
 ```json
 {
-  "response": "Để tạo nhân viên mới trong hệ thống, bạn có thể thực hiện theo các cách sau:\n\n**1. Qua Giao Diện Web:**\n- Truy cập menu 'Employees'\n- Click nút 'Thêm mới'\n- Điền form với các thông tin bắt buộc: Họ tên, Email, Số điện thoại, Phòng ban, Chức vụ\n- Upload CV nếu có\n- Click 'Lưu'\n\n**2. Qua API:**\n```\nPOST /api/v1/employees\n{\n  \"fullName\": \"Nguyễn Văn A\",\n  \"email\": \"a.nguyen@company.com\",\n  \"phone\": \"0912345678\",\n  \"departmentId\": 1,\n  \"position\": \"Developer\",\n  \"hireDate\": \"2024-01-15\",\n  \"salary\": 15000000\n}\n```\n\n**Các trường bắt buộc:**\n- fullName (Họ tên)\n- email (Email hợp lệ)\n- phone (Số điện thoại)\n- departmentId (ID phòng ban)\n\n*Nguồn: API_DOCUMENTATION.md, USER_GUIDE.md*",
+  "response": "To create a new employee in the system, you can use the following methods:\n\n**1. Via Web Interface:**\n- Access 'Employees' menu\n- Click 'Add New' button\n- Fill form with required information: Full Name, Email, Phone, Department, Position\n- Upload CV if available\n- Click 'Save'\n\n**2. Via API:**\n```\nPOST /api/v1/employees\n{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@company.com\",\n  \"phone\": \"0912345678\",\n  \"departmentId\": 1,\n  \"position\": \"Developer\",\n  \"hireDate\": \"2024-01-15\",\n  \"salary\": 15000000\n}\n```\n\n**Required fields:**\n- fullName (Full Name)\n- email (Valid Email)\n- phone (Phone Number)\n- departmentId (Department ID)\n\n*Source: API_DOCUMENTATION.md, USER_GUIDE.md*",
   
   "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
   
@@ -400,7 +400,7 @@ Hướng dẫn:
       "rank": 2
     },
     {
-      "content": "### Thêm Nhân Viên Mới...",
+      "content": "### Add New Employee...",
       "metadata": {
         "source": "./documents/employee_management_system/docs/USER_GUIDE.md"
       },
@@ -418,7 +418,7 @@ Hướng dẫn:
 }
 ```
 
-## 🗄️ Cấu Trúc ChromaDB
+## 🗄️ ChromaDB Structure
 
 ### Collection Schema
 
@@ -432,7 +432,7 @@ Collection: "documents"
 └── Documents (Chunks)
     ├── Document ID: "doc_0_abc123def456"
     │   ├── Embedding: [1536 dimensions float array]
-    │   ├── Text: "Hệ thống quản lý nhân viên là..."
+    │   ├── Text: "Employee management system is..."
     │   └── Metadata:
     │       ├── source: "./documents/README.md"
     │       ├── file_type: ".md"
@@ -442,13 +442,13 @@ Collection: "documents"
     │
     ├── Document ID: "doc_1_ghi789jkl012"
     │   ├── Embedding: [1536 dimensions]
-    │   ├── Text: "## Đặc Trưng Chính..."
+    │   ├── Text: "## Main Features..."
     │   └── Metadata: {...}
     │
-    └── ... (nhiều documents khác)
+    └── ... (many other documents)
 ```
 
-### Ví Dụ Thực Tế
+### Real Example
 
 ```json
 {
@@ -456,9 +456,9 @@ Collection: "documents"
   "embedding": [
     0.023145, -0.891234, 0.234567, 0.567890, -0.123456,
     0.789012, 0.345678, -0.901234, 0.456789, 0.012345,
-    // ... 1526 số nữa (tổng 1536)
+    // ... 1526 more numbers (total 1536)
   ],
-  "document": "POST /api/v1/employees\n\nTạo nhân viên mới trong hệ thống.\n\n**Request Body:**\n```json\n{\n  \"fullName\": \"string\",\n  \"email\": \"string\",\n  \"phone\": \"string\",\n  \"departmentId\": \"integer\",\n  \"position\": \"string\",\n  \"hireDate\": \"date\",\n  \"salary\": \"float\"\n}\n```\n\n**Response:** 201 Created",
+  "document": "POST /api/v1/employees\n\nCreate new employee in the system.\n\n**Request Body:**\n```json\n{\n  \"fullName\": \"string\",\n  \"email\": \"string\",\n  \"phone\": \"string\",\n  \"departmentId\": \"integer\",\n  \"position\": \"string\",\n  \"hireDate\": \"date\",\n  \"salary\": \"float\"\n}\n```\n\n**Response:** 201 Created",
   "metadata": {
     "source": "./documents/employee_management_system/docs/API_DOCUMENTATION.md",
     "file_type": ".md",

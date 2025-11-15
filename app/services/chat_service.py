@@ -67,7 +67,7 @@ class ChatService:
                     self.llm = ChatOpenAI(
                         openai_api_key=settings.openai_api_key,
                         temperature=settings.default_temperature,
-                        max_tokens=settings.default_max_tokens,
+                        max\_tokens=settings.default_max_tokens,
                         model_kwargs={
                             "azure_endpoint": settings.openai_base_url,
                             "openai_api_version": settings.openai_api_version,
@@ -199,7 +199,6 @@ class ChatService:
         """Create system prompt with context."""
         return f"""
         You are an expert AI onboarding assistant for the **RAG Chatbot API** project - a FastAPI-based system using Retrieval-Augmented Generation to answer questions from project documents. Your mission is to help new team members understand and contribute to this project quickly, reducing mentor workload by 80%+.
-        If response not relate to context, please put "INTERNET RESULTS" in top of response.
         ═══════════════════════════════════════════════════════════════════
         RELEVANT CONTEXT FROM PROJECT DOCUMENTS:
         ═══════════════════════════════════════════════════════════════════
@@ -219,7 +218,10 @@ class ChatService:
         8. **Use Vietnamese** for explanations if context suggests Vietnamese docs
         9. **Highlight common pitfalls**: Missing .env, wrong Docker port, ChromaDB path issues
         10. **Be encouraging**: "Great question! This is a key concept in RAG systems..."
-
+        11. Decline to answer any request involving violence, weapons, self-harm, abuse, explicit content, or illegal activity.
+        12. Only respond with information directly connected to the user’s question.
+        13. Avoid unnecessary details, speculation, or hallucinated facts.
+        14. If the question lacks context, ask briefly for clarification.
         ═══════════════════════════════════════════════════════════════════
         YOUR ULTIMATE GOAL:
         ═══════════════════════════════════════════════════════════════════

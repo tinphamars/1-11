@@ -1,58 +1,58 @@
 ## 🔍 Troubleshooting
 
-### Vấn Đề Thường Gặp
+### Common Issues
 
-#### 1. Documents không được load
+#### 1. Documents not loading
 
-**Triệu chứng:**
+**Symptoms:**
 ```
 ⚠️ No documents found to auto-load
 ```
 
-**Nguyên nhân & Giải pháp:**
-- Thư mục `./documents` trống → Thêm files
-- File extension không được hỗ trợ → Kiểm tra `SUPPORTED_EXTENSIONS`
-- File quá lớn → Tăng `MAX_FILE_SIZE_MB`
+**Causes & Solutions:**
+- Empty `./documents` folder → Add files
+- Unsupported file extension → Check `SUPPORTED_EXTENSIONS`
+- File too large → Increase `MAX_FILE_SIZE_MB`
 
-#### 2. Tìm kiếm không chính xác
+#### 2. Inaccurate search results
 
-**Triệu chứng:**
-- Câu trả lời không liên quan
-- Documents trả về score thấp
+**Symptoms:**
+- Irrelevant answers
+- Low document scores returned
 
-**Giải pháp:**
-- Giảm `chunk_size` để tăng độ chi tiết
-- Tăng `RETRIEVAL_K` để có nhiều context hơn
-- Kiểm tra quality của documents (có đủ thông tin?)
+**Solutions:**
+- Reduce `chunk_size` for more detail
+- Increase `RETRIEVAL_K` for more context
+- Check document quality (sufficient information?)
 
-#### 3. Response chậm
+#### 3. Slow response
 
-**Triệu chứng:**
+**Symptoms:**
 - API timeout
-- Latency cao
+- High latency
 
-**Giải pháp:**
-- Giảm `RETRIEVAL_K`
-- Giảm `max_tokens` trong response
-- Sử dụng cache cho queries phổ biến
-- Scale horizontal với load balancer
+**Solutions:**
+- Reduce `RETRIEVAL_K`
+- Reduce `max_tokens` in response
+- Use cache for common queries
+- Scale horizontally with load balancer
 
 #### 4. OpenAI API errors
 
-**Triệu chứng:**
+**Symptoms:**
 ```
 401 Unauthorized
 429 Rate Limit Exceeded
 500 Internal Server Error
 ```
 
-**Giải pháp:**
-- Kiểm tra `OPENAI_API_KEY`
-- Thêm retry logic với exponential backoff
+**Solutions:**
+- Check `OPENAI_API_KEY`
+- Add retry logic with exponential backoff
 - Monitor usage quota
-- Sử dụng fallback model
+- Use fallback model
 
-## 📚 Tài Liệu Tham Khảo
+## 📚 References
 
 ### Technologies
 
@@ -80,20 +80,20 @@
 
 ---
 
-## 🚀 Kết Luận
+## 🚀 Conclusion
 
-RAG Chatbot API kết hợp sức mạnh của:
+RAG Chatbot API combines the power of:
 
-1. **Vector Search** (ChromaDB): Tìm kiếm ngữ nghĩa nhanh và chính xác
-2. **Embeddings** (OpenAI): Chuyển đổi text thành vectors có ý nghĩa
-3. **LLM** (GPT): Sinh câu trả lời tự nhiên dựa trên context
-4. **Document Processing** (LangChain): Xử lý đa dạng định dạng files
+1. **Vector Search** (ChromaDB): Fast and accurate semantic search
+2. **Embeddings** (OpenAI): Convert text to meaningful vectors
+3. **LLM** (GPT): Generate natural responses based on context
+4. **Document Processing** (LangChain): Process diverse file formats
 
-Hệ thống này cho phép:
-- ✅ Trả lời câu hỏi chính xác dựa trên documents
-- ✅ Tự động cập nhật khi thêm tài liệu mới
-- ✅ Scale tốt với lượng documents lớn
-- ✅ Trích dẫn nguồn minh bạch
-- ✅ Dễ dàng tích hợp vào ứng dụng
+This system enables:
+- ✅ Answer questions accurately based on documents
+- ✅ Auto-update when adding new documents
+- ✅ Scale well with large document collections
+- ✅ Transparent source citation
+- ✅ Easy integration into applications
 
 **Happy Coding! 🎉**
