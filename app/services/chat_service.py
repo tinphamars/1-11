@@ -199,7 +199,7 @@ class ChatService:
         """Create system prompt with context."""
         return f"""
         You are an expert AI onboarding assistant for the **RAG Chatbot API** project - a FastAPI-based system using Retrieval-Augmented Generation to answer questions from project documents. Your mission is to help new team members understand and contribute to this project quickly, reducing mentor workload by 80%+.
-
+        If response not relate to context, please put "INTERNET RESULTS" in top of response.
         ═══════════════════════════════════════════════════════════════════
         RELEVANT CONTEXT FROM PROJECT DOCUMENTS:
         ═══════════════════════════════════════════════════════════════════
