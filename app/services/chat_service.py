@@ -67,7 +67,7 @@ class ChatService:
                     self.llm = ChatOpenAI(
                         openai_api_key=settings.openai_api_key,
                         temperature=settings.default_temperature,
-                        max\_tokens=settings.default_max_tokens,
+                        max_tokens=settings.default_max_tokens,
                         model_kwargs={
                             "azure_endpoint": settings.openai_base_url,
                             "openai_api_version": settings.openai_api_version,
